@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+        .dark-mode {
+            background-color: #121212;
+            color: #fff;
+        }
+
+        h1, h2 {
+            color: #ff4500;
+            margin-bottom: 10px;
+        }
+
+        /* Buttons and Inputs */
+        button {
+            padding: 12px 20px;
+            margin: 10px;
+            background: #ff4500;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #ff6347;
+        }
+
+        input, select {
+            padding: 12px;
+            margin: 10px;
+            width: 60%;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            outline: none;
+        }
+
+        /* Movie Card Styling */
+        .movie-card {
+            display: inline-block;
+            width: 220px;
+            padding: 15px;
+            margin: 15px;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .movie-card img {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Dark Mode Button */
+        #dark-mode-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #333;
+            color: white;
+        }
+
+        /* Tabbed Content */
+        .tabs {
+            margin-top: 20px;
+        }
+
+        .tabs button {
+            background-color: #ff4500;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin: 5px;
+        }
+
+        .tabs button:hover {
+            background-color: #ff6347;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Loading Indicator */
+        #loading {
+            font-size: 18px;
+            color: #ff4500;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            input, select, button {
+                width: 90%;
+                font-size: 14px;
+            }
+
+            .movie-card {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Dark Mode Button -->
+<button id="dark-mode-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+
+<h1>🎬 Movie Recommendation</h1>
+
+<!-- Search Section -->
+<input type="text" id="search" placeholder="Search for a movie...">
+<button onclick="searchMovie()">Search</button>
+<div id="recommendations"></div>
+
+<!-- Loading Indicator -->
+<div id="loading">Loading...</div>
+
+<h2>🔥 Trending Movies</h2>
+<div id="trendingMovies"></div>
+
+<!-- Tabs Section -->
+<div class="tabs">
+    <button onclick="showTab('ratingsTab')">⭐ Ratings</button>
+    <button onclick="showTab('watchlistTab')">🎟️ Watchlist</button>
+</div>
+
+<!-- Ratings Tab -->
+<div id="ratingsTab" class="tab-content">
+    <h2>⭐ Rate a Movie</h2>
+    <input type="text" id="movieToRate" placeholder="Enter movie name">
+    <select id="rating">
+        <option value="1">⭐</option>
+        <option value="2">⭐⭐</option>
+        <option value="3">⭐⭐⭐</option>
+        <option value="4">⭐⭐⭐⭐</option>
+        <option value="5">⭐⭐⭐⭐⭐</option>
+    </select>
+    <button onclick="saveRating()">Submit Rating</button>
+    <div id="ratingsList"></div>
+</div>
+
+<!-- Watchlist Tab -->
+<div id="watchlistTab" class="tab-content">
+    <div id="watchlist"></div>
+</div>
+
+<script>
+    const user = "guest_user";
+
+    // Toggle Dark Mode
+    function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+        localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+    }
+
+    // Load Dark Mode on Page Load
+    window.onload = () => {
+        if (localStorage.getItem("theme") === "dark") {
+            document.body.classList.add("dark-mode");
+        }
+        loadWatchlist();
+        loadRatings();
+        showTab('ratingsTab');
+        loadTrendingMovies();
+    };
+
+    // Search Movies
+    function searchMovie() {
+        let movie = document.getElementById("search").value;
+        if (movie) {
+            let recommendations = [`${movie} 2`, `${movie} 3`, `${movie} 4`];
+            document.getElementById("recommendations").innerHTML = recommendations.map(m => `
+                <div class="movie-card">
+                    <h3>${m}</h3>
+                    <img src="https://via.placeholder.com/200x300" alt="${m}">
+                    <button onclick="addToWatchlist('${m}')">➕ Add to Watchlist</button>
+                </div>
+            `).join("");
+        }
+    }
+
+    // Load Trending Movies
+    function loadTrendingMovies() {
+        document.getElementById("loading").style.display = "block";
+        fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=YOUR_API_KEY`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("loading").style.display = "none";
+                let trendingMovies = data.results.map(movie => `
+                    <div class="movie-card">
+                        <h3>${movie.title}</h3>
+                        <img src="https://image.tmdb.org/t/p/w200${movie.poster_path}" alt="${movie.title}">
+                        <p>⭐ ${movie.vote_average}</p>
+                        <button onclick="addToWatchlist('${movie.title}')">➕ Add to Watchlist</button>
+                    </div>
+                `).join("");
+                document.getElementById("trendingMovies").innerHTML = trendingMovies;
+            });
+    }
+
+    // Save Ratings to MySQL
+    function saveRating() {
+        let movie = document.getElementById("movieToRate").value;
+        let rating = document.getElementById("rating").value;
+
+        if (movie) {
+            alert(`You rated ${movie} with ${"⭐".repeat(rating)}`);
+        }
+    }
+
+    // Add to Watchlist
+    function addToWatchlist(movie) {
+        let watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
+        if (!watchlist.includes(movie)) {
+            watchlist.push(movie);
+            localStorage.setItem("watchlist", JSON.stringify(watchlist));
+        }
+        loadWatchlist();
+    }
+
+    // Load Watchlist
+    function loadWatchlist() {
+        let watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
+        document.getElementById("watchlist").innerHTML = watchlist.map(m => `<p>${m}</p>`).join("");
+    }
+
+    // Tabs Switching
+    function showTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(tab).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
